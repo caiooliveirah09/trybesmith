@@ -1,15 +1,25 @@
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import mysql from './connection';
-import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { INewProduct } from '../interfaces/INewProduct';
-import { IProducts } from '../interfaces/IProducts';
+import { IProduct } from '../interfaces/IProduct';
 
 export default class ProductModel {
   private connection = mysql;
 
-  public registerNewProduct = async (newProduct: INewProduct): Promise<INewProduct> => {
+  public registerNewProduct = async (newProduct: INewProduct): Promise<IProduct> => {
     const { name, amount } = newProduct;
-    const [result] = await this.connection.execute<IProducts[] & RowDataPacket[]>('SELECT * FROM Trybesmith.Products;');
-    console.log(result);
-    return newProduct;
+    const [{ insertId }] = await this.connection.execute<ResultSetHeader>(
+      'INSERT INTO Trybesmith.Products (name, amount) VALUES (?, ?)',
+      [name, amount],
+    );
+    return { id: insertId, ...newProduct };
+  };
+
+  public getAllProducts = async (): Promise<IProduct[]> => {
+    const [allProducts] = await this.connection.execute<IProduct[] & RowDataPacket[]>(
+      'SELECT * FROM Trybesmith.Products',
+    );
+
+    return allProducts;
   };
 }
